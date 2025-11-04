@@ -86,13 +86,14 @@ export const createTipHandler = (botId: string): TipHandler => async (handler, e
 
     // TODO: Remove
     console.log("Sending tip back", event)
-    await handler.sendTip({
+    const result = await handler.sendTip({
         userId: event.userId, // The person who tipped you
         channelId: event.channelId, // Same channel
         messageId: event.messageId, // Reference the original message
         amount: event.amount, // Same amount (or adjust as needed)
         currency: event.currency, // Same token
     });
+    console.log("Sent tip back", result)
 
     await handler.sendMessage(
         event.channelId,
