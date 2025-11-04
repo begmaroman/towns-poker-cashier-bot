@@ -7,9 +7,9 @@ import startHandler from './handlers/start'
 import stateHandler from './handlers/state'
 import finishHandler from './handlers/finish'
 import cashoutHandler from './handlers/cashout'
+import depositHandler from './handlers/deposit'
 import createTipHandler from './handlers/tip'
 import type { SlashCommandHandler } from './types'
-import {supportsExecutionMode} from "viem/experimental/erc7821";
 
 const bot = await makeTownsBot(process.env.APP_PRIVATE_DATA!, process.env.JWT_SECRET!, {
     commands,
@@ -35,9 +35,9 @@ registerSlashCommand('start', startHandler)
 registerSlashCommand('state', stateHandler)
 registerSlashCommand('finish', finishHandler)
 registerSlashCommand('cashout', cashoutHandler)
+registerSlashCommand('deposit', depositHandler)
 
-bot.onTip(createTipHandler(bot.appAddress))
-console.log(await supportsExecutionMode(bot.viem, { address: "0xe78258E436e5708e6C14b3f848551fD50161CA61" }))
+bot.onTip(createTipHandler(bot.botId))
 const { jwtMiddleware, handler } = bot.start()
 
 const app = new Hono()

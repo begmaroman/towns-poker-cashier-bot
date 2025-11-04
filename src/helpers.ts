@@ -69,7 +69,9 @@ export async function resolveEthUsdRate(): Promise<EthUsdRate> {
         return envRate
     }
 
-    throw new Error('Unable to resolve ETH/USD exchange rate. Set ETH_USD_RATE env variable or enable outbound network access.')
+    throw new Error(
+        'Unable to resolve ETH/USD exchange rate. Provide ALCHEMY_PRICE_API_KEY or set ETH_USD_RATE environment variable.',
+    )
 }
 
 function parseRateFromEnv(): EthUsdRate | null {
@@ -91,21 +93,46 @@ function parseRateFromEnv(): EthUsdRate | null {
 }
 
 async function tryFetchRate(): Promise<EthUsdRate | null> {
+    const apiKey = process.env.ALCHEMY_PRICE_API_KEY?.trim()
+    if (!apiKey) {
+        return null
+    }
+
     try {
-        const response = await fetch(
-            'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd',
-        )
+        const url = new URL(`https://api.g.alchemy.com/prices/v1/${apiKey}/tokens/by-symbol`)
+        url.searchParams.set('symbols', 'ETH')
+
+        const response = await fetch(url.toString())
 
         if (!response.ok) {
-            console.warn("Failed to fetch ETH/USD rate from CoinGecko:", response.statusText)
+            console.warn('Failed to fetch ETH/USD rate from Alchemy:', response.status, response.statusText)
             return null
         }
 
-        const body = (await response.json()) as { ethereum?: { usd?: number } }
-        const usdPrice = body?.ethereum?.usd
+        type AlchemyPriceResponse = {
+            data?: Array<{
+                symbol?: string
+                prices?: Array<{
+                    currency?: string
+                    value?: string
+                    lastUpdatedAt?: string
+                }>
+            }>
+        }
 
-        if (typeof usdPrice !== 'number' || !Number.isFinite(usdPrice) || usdPrice <= 0) {
-            console.warn('Invalid ETH/USD rate from CoinGecko:', usdPrice)
+        const body = (await response.json()) as AlchemyPriceResponse
+        const priceEntry = body?.data?.find((entry) => entry.symbol?.toUpperCase() === 'ETH')?.prices?.find(
+            (price) => price.currency?.toLowerCase() === 'usd',
+        )
+
+        if (!priceEntry?.value) {
+            console.warn('Alchemy price payload missing USD value:', body)
+            return null
+        }
+
+        const usdPrice = Number(priceEntry.value)
+        if (!Number.isFinite(usdPrice) || usdPrice <= 0) {
+            console.warn('Invalid ETH/USD rate from Alchemy:', priceEntry.value)
             return null
         }
 
@@ -113,11 +140,11 @@ async function tryFetchRate(): Promise<EthUsdRate | null> {
 
         return {
             value: scaled,
-            fetchedAt: new Date(),
-            source: 'CoinGecko',
+            fetchedAt: priceEntry.lastUpdatedAt ? new Date(priceEntry.lastUpdatedAt) : new Date(),
+            source: 'Alchemy',
         }
     } catch (error) {
-        console.warn('Failed to fetch ETH/USD rate:', error)
+        console.warn('Failed to fetch ETH/USD rate from Alchemy:', error)
         return null
     }
 }

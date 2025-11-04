@@ -9,6 +9,7 @@ import finishHandler from '../src/handlers/finish'
 import helpHandler from '../src/handlers/help'
 import startHandler from '../src/handlers/start'
 import stateHandler from '../src/handlers/state'
+import depositHandler from '../src/handlers/deposit'
 import createTipHandler from '../src/handlers/tip'
 import { clearSessions, getSession } from '../src/sessionStore'
 import { getSessionTotals } from '../src/sessionUtils'
@@ -31,6 +32,7 @@ const commandHandlers: Record<(typeof commands)[number]['name'], SlashCommandHan
     state: stateHandler,
     finish: finishHandler,
     cashout: cashoutHandler,
+    deposit: depositHandler,
 }
 
 let eventCounter = 0
@@ -136,20 +138,52 @@ async function sendTip(
 }
 
 let originalFetch: typeof globalThis.fetch | undefined
+let originalAlchemyKey: string | undefined
+let originalDepositUrl: string | undefined
 
 beforeEach(() => {
     clearSessions()
     eventCounter = 0
     originalFetch = globalThis.fetch
+    originalAlchemyKey = process.env.ALCHEMY_PRICE_API_KEY
+    originalDepositUrl = process.env.X402_DEPOSIT_URL
+    process.env.ALCHEMY_PRICE_API_KEY = 'test-key'
+    process.env.X402_DEPOSIT_URL = 'https://x402.example/pay'
     globalThis.fetch = (async () =>
-        new Response(JSON.stringify({ ethereum: { usd: 2000 } }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        })) as unknown as typeof globalThis.fetch
+        new Response(
+            JSON.stringify({
+                data: [
+                    {
+                        symbol: 'ETH',
+                        prices: [
+                            {
+                                currency: 'usd',
+                                value: '2000',
+                                lastUpdatedAt: '2025-01-01T00:00:00Z',
+                            },
+                        ],
+                    },
+                ],
+            }),
+            {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        )) as unknown as typeof globalThis.fetch
 })
 
 afterEach(() => {
     clearSessions()
+    if (originalAlchemyKey === undefined) {
+        delete process.env.ALCHEMY_PRICE_API_KEY
+    } else {
+        process.env.ALCHEMY_PRICE_API_KEY = originalAlchemyKey
+    }
+    if (originalDepositUrl === undefined) {
+        delete process.env.X402_DEPOSIT_URL
+    } else {
+        process.env.X402_DEPOSIT_URL = originalDepositUrl
+    }
     if (originalFetch) {
         globalThis.fetch = originalFetch
     } else {
@@ -306,6 +340,15 @@ describe('Poker cashier bot e2e coverage', () => {
         const lossSession = getSession(CHANNEL_ID)!
         const totalsLoss = getSessionTotals(lossSession)
         expect(totalsLoss.totalDepositsWei).toBeGreaterThan(totalsLoss.totalCashoutsWei)
+    })
+
+    it('notifies that x402 integration is pending', async () => {
+        const { handler, messages } = createHandler()
+
+        await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
+
+        const [depositMessage] = await runCommand('deposit', ['50'], PLAYER_A_ID, handler, messages)
+        expect(depositMessage).toContain('x402 deposit integration is in progress')
     })
 
     it('allows a player to rejoin after cashing out', async () => {
