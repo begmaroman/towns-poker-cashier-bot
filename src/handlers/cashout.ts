@@ -49,20 +49,9 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
         return
     }
 
-    player.cashoutWei = cashoutWei
-    player.cashoutUsdCents = cashoutUsdCents
-    player.isActive = false
-    player.lastActionAt = new Date()
-
-    setSession(channelId, session)
-
     const depositUsdCents = weiToUsdCents(player.totalDepositWei, session.exchangeRate.value)
     const netUsdCents = cashoutUsdCents - depositUsdCents
     const netWei = cashoutWei - player.totalDepositWei
-
-    const totals = getSessionTotals(session)
-    const outstandingWei = totals.totalDepositsWei - totals.totalCashoutsWei
-    const outstandingUsdCents = weiToUsdCents(outstandingWei, session.exchangeRate.value)
 
     const netSummary = netUsdCents === 0n
         ? 'Net result: even.'
@@ -84,8 +73,29 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
             payoutHash = result.txHash
         } catch (error) {
             payoutError = error
+            player.lastPayoutError = error instanceof Error ? error.message : String(error)
+            setSession(channelId, session)
+            await handler.sendMessage(
+                channelId,
+                `${mention(userId)} cash out attempt failed while sending your payout: ${
+                    error instanceof Error ? error.message : String(error)
+                }. Try running /cashout again once the issue is resolved.`,
+            )
+            return
         }
     }
+
+    player.cashoutWei = cashoutWei
+    player.cashoutUsdCents = cashoutUsdCents
+    player.lastPayoutError = undefined
+    player.isActive = false
+    player.lastActionAt = new Date()
+
+    setSession(channelId, session)
+
+    const totals = getSessionTotals(session)
+    const outstandingWei = totals.totalDepositsWei - totals.totalCashoutsWei
+    const outstandingUsdCents = weiToUsdCents(outstandingWei, session.exchangeRate.value)
 
     const payoutNotice = formatPayoutNotice(payoutHash, payoutError)
 

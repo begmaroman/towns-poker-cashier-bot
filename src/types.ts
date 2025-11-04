@@ -8,6 +8,7 @@ export interface PlayerState {
     totalDepositWei: Amount
     cashoutWei?: Amount
     cashoutUsdCents?: bigint
+    lastPayoutError?: string
     isActive: boolean
     joinedAt: Date
     leftAt?: Date

@@ -72,10 +72,20 @@ function createTipEvent(overrides: Partial<TipEvent> = {}): TipEvent {
     }
 }
 
-function createHandler(): { handler: BotHandler; messages: SentMessage[]; tipCalls: TipCall[] } {
+function createHandler(): {
+    handler: BotHandler
+    messages: SentMessage[]
+    tipCalls: TipCall[]
+    failNextTip: (message?: string) => void
+} {
     const messages: SentMessage[] = []
     const tipCalls: TipCall[] = []
     let tipCounter = 0
+    let nextTipError: string | undefined
+
+    const failNextTip = (message = 'Simulated payout failure') => {
+        nextTipError = message
+    }
 
     const handler = {
         botId: BOT_ID,
@@ -84,6 +94,11 @@ function createHandler(): { handler: BotHandler; messages: SentMessage[]; tipCal
             return { eventId: 'stub', prevMiniblockHash: new Uint8Array() }
         },
         async sendTip(params: TipCall) {
+            if (nextTipError) {
+                const error = new Error(nextTipError)
+                nextTipError = undefined
+                throw error
+            }
             tipCalls.push(params)
             tipCounter += 1
             return {
@@ -93,7 +108,7 @@ function createHandler(): { handler: BotHandler; messages: SentMessage[]; tipCal
         },
     } as unknown as BotHandler
 
-    return { handler, messages, tipCalls }
+    return { handler, messages, tipCalls, failNextTip }
 }
 
 async function runCommand(
@@ -325,5 +340,32 @@ describe('Poker cashier bot e2e coverage', () => {
         expect(player?.isActive).toBe(true)
         expect(player?.cashoutWei).toBeUndefined()
         expect(player?.totalDepositWei).toBeGreaterThan(0n)
+    })
+
+    it('allows retry when payout tip fails', async () => {
+        const { handler, messages, tipCalls, failNextTip } = createHandler()
+
+        await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
+        const session = getSession(CHANNEL_ID)!
+        const rate = session.exchangeRate.value
+
+        await sendTip(handler, messages, {
+            userId: PLAYER_A_ID,
+            senderAddress: PLAYER_A_ID,
+            amount: usdCentsToWei(2500n, rate),
+        })
+
+        await runCommand('finish', [], HOST_ID, handler, messages)
+
+        failNextTip('Temporary payout failure')
+        const [failureMessage] = await runCommand('cashout', ['25'], PLAYER_A_ID, handler, messages)
+        expect(failureMessage).toContain('cash out attempt failed')
+        expect(tipCalls).toHaveLength(0)
+        expect(getSession(CHANNEL_ID)!.players.get(PLAYER_A_ID)?.cashoutWei).toBeUndefined()
+
+        const [successMessage] = await runCommand('cashout', ['25'], PLAYER_A_ID, handler, messages)
+        expect(successMessage).toContain('Tip sent on\\-chain')
+        expect(tipCalls).toHaveLength(1)
+        expect(tipCalls[0]?.userId).toBe(PLAYER_A_ID)
     })
 })
