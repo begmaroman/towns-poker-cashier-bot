@@ -13,11 +13,6 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
         return
     }
 
-    if (session.status !== 'finished') {
-        await handler.sendMessage(channelId, 'The session is still in progress. Wait for the host to run `/finish` before cashing out.')
-        return
-    }
-
     const amountInput = args[0]
     if (!amountInput) {
         await handler.sendMessage(channelId, 'Usage: `/cashout <usd>` (example: `/cashout 85` or `/cashout 83.25`).')
@@ -75,11 +70,50 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
           ? `Net result: profit ${formatUsd(netUsdCents)} (~${formatEth(netWei)}).`
           : `Net result: loss ${formatUsd(-netUsdCents)} (~${formatEth(-netWei)}).`
 
+    let payoutHash: string | undefined
+    let payoutError: unknown
+
+    if (netWei > 0n) {
+        try {
+            const result = await handler.sendTip({
+                userId,
+                amount: netWei,
+                messageId: event.eventId,
+                channelId,
+            })
+            payoutHash = result.txHash
+        } catch (error) {
+            payoutError = error
+        }
+    }
+
+    const payoutNotice = formatPayoutNotice(payoutHash, payoutError)
+
     await handler.sendMessage(
         channelId,
-        `${mention(userId)} cashes out ${formatUsd(cashoutUsdCents)} (~${formatEth(cashoutWei)}). ${netSummary}\n` +
+        `${mention(userId)} cashes out ${formatUsd(cashoutUsdCents)} (~${formatEth(cashoutWei)}). ${netSummary}${payoutNotice}\n` +
             `Outstanding pot balance: ${formatUsd(outstandingUsdCents)} (~${formatEth(outstandingWei)}).`,
     )
 }
 
 export default cashoutHandler
+
+function formatPayoutNotice(payoutHash: string | undefined, payoutError: unknown): string {
+    if (payoutHash) {
+        return ` Tip sent on\\-chain (tx: ${shortenHash(payoutHash)}).`
+    }
+
+    if (payoutError) {
+        const message = payoutError instanceof Error ? payoutError.message : String(payoutError)
+        return ` Attempted tip transfer failed: ${message}`
+    }
+
+    return ''
+}
+
+function shortenHash(hash: string): string {
+    if (!hash.startsWith('0x') || hash.length <= 18) {
+        return hash
+    }
+    return `${hash.slice(0, 10)}…${hash.slice(-6)}`
+}

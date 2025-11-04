@@ -7,7 +7,6 @@ import { usdCentsToWei } from '../src/helpers'
 import cashoutHandler from '../src/handlers/cashout'
 import finishHandler from '../src/handlers/finish'
 import helpHandler from '../src/handlers/help'
-import leaveHandler from '../src/handlers/leave'
 import startHandler from '../src/handlers/start'
 import stateHandler from '../src/handlers/state'
 import createTipHandler from '../src/handlers/tip'
@@ -24,13 +23,13 @@ const PLAYER_B_ID: `0x${string}` = '0x3333333333333333333333333333333333333333'
 const BOT_ID: `0x${string}` = '0x4444444444444444444444444444444444444444'
 
 type SentMessage = { channelId: string; message: string }
+type TipCall = Parameters<BotHandler['sendTip']>[0]
 
 const commandHandlers: Record<(typeof commands)[number]['name'], SlashCommandHandler> = {
     help: helpHandler,
     start: startHandler,
     state: stateHandler,
     finish: finishHandler,
-    leave: leaveHandler,
     cashout: cashoutHandler,
 }
 
@@ -73,17 +72,28 @@ function createTipEvent(overrides: Partial<TipEvent> = {}): TipEvent {
     }
 }
 
-function createHandler(): { handler: BotHandler; messages: SentMessage[] } {
+function createHandler(): { handler: BotHandler; messages: SentMessage[]; tipCalls: TipCall[] } {
     const messages: SentMessage[] = []
+    const tipCalls: TipCall[] = []
+    let tipCounter = 0
+
     const handler = {
         botId: BOT_ID,
         async sendMessage(channelId: string, message: string) {
             messages.push({ channelId, message })
             return { eventId: 'stub', prevMiniblockHash: new Uint8Array() }
         },
+        async sendTip(params: TipCall) {
+            tipCalls.push(params)
+            tipCounter += 1
+            return {
+                txHash: `0xtx${tipCounter.toString().padStart(4, '0')}`,
+                eventId: `tip-${tipCounter}`,
+            }
+        },
     } as unknown as BotHandler
 
-    return { handler, messages }
+    return { handler, messages, tipCalls }
 }
 
 async function runCommand(
@@ -144,8 +154,8 @@ describe('Poker cashier bot e2e coverage', () => {
         expect(stateMessage).toContain('No poker session has been started yet')
     })
 
-    it('supports multi-player lifecycle including leave, profit, and loss cashouts', async () => {
-        const { handler, messages } = createHandler()
+    it('supports multi-player lifecycle including mid-game and post-game cashouts', async () => {
+        const { handler, messages, tipCalls } = createHandler()
 
         await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
         const session = getSession(CHANNEL_ID)!
@@ -176,11 +186,12 @@ describe('Poker cashier bot e2e coverage', () => {
         expect(stateMessage).toContain('~USD 25') // Player B total
         expect(stateMessage).not.toContain('Ignored Tips')
 
-        const [leaveMessage] = await runCommand('leave', [], PLAYER_A_ID, handler, messages)
-        expect(leaveMessage).toContain('left the table')
+        const [midGameCashout] = await runCommand('cashout', ['20'], PLAYER_B_ID, handler, messages)
+        expect(midGameCashout).toContain('Net result: loss')
+        expect(midGameCashout).not.toContain('Tip sent on')
 
-        const [stateAfterLeave] = await runCommand('state', [], HOST_ID, handler, messages)
-        expect(stateAfterLeave).toContain('Left table')
+        const [stateAfterCashout] = await runCommand('state', [], HOST_ID, handler, messages)
+        expect(stateAfterCashout).toContain('Left table')
 
         await runCommand('finish', [], HOST_ID, handler, messages)
 
@@ -193,9 +204,7 @@ describe('Poker cashier bot e2e coverage', () => {
 
         const [cashoutA] = await runCommand('cashout', ['45'], PLAYER_A_ID, handler, messages)
         expect(cashoutA).toContain('Net result: profit')
-
-        const [cashoutB] = await runCommand('cashout', ['20'], PLAYER_B_ID, handler, messages)
-        expect(cashoutB).toContain('Net result: loss')
+        expect(cashoutA).toContain('Tip sent on\\-chain')
 
         const [duplicateCashout] = await runCommand('cashout', ['15'], PLAYER_B_ID, handler, messages)
         expect(duplicateCashout).toContain('already been recorded')
@@ -206,10 +215,13 @@ describe('Poker cashier bot e2e coverage', () => {
 
         const [finalState] = await runCommand('state', [], HOST_ID, handler, messages)
         expect(finalState).toContain('Outstanding balance: ETH 0')
+
+        expect(tipCalls).toHaveLength(1)
+        expect(tipCalls[0]?.userId).toBe(PLAYER_A_ID)
     })
 
     it('prevents actions when session state disallows them', async () => {
-        const { handler, messages } = createHandler()
+        const { handler, messages, tipCalls } = createHandler()
 
         // Cashout before start
         const [cashoutNoSession] = await runCommand('cashout', ['10'], PLAYER_A_ID, handler, messages)
@@ -217,21 +229,19 @@ describe('Poker cashier bot e2e coverage', () => {
 
         await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
 
-        // Cashout before finish
+        // Cashout without joining should warn
         const [earlyCashout] = await runCommand('cashout', ['10'], PLAYER_A_ID, handler, messages)
-        expect(earlyCashout).toContain('session is still in progress')
-
-        // Leave without joining
-        const [leaveMessage] = await runCommand('leave', [], PLAYER_A_ID, handler, messages)
-        expect(leaveMessage).toContain('have not deposited')
+        expect(earlyCashout).toContain('did not participate in this session')
 
         // Start again while active
         const [dupeStart] = await runCommand('start', ['10', '100'], HOST_ID, handler, messages)
         expect(dupeStart).toContain('already active')
+
+        expect(tipCalls).toHaveLength(0)
     })
 
     it('rejects deposits outside the configured range', async () => {
-        const { handler, messages } = createHandler()
+        const { handler, messages, tipCalls } = createHandler()
 
         await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
         const session = getSession(CHANNEL_ID)!
@@ -253,5 +263,6 @@ describe('Poker cashier bot e2e coverage', () => {
 
         expect(getSession(CHANNEL_ID)!.players.size).toBe(0)
         expect(getSession(CHANNEL_ID)!.rejectedTips).toHaveLength(2)
+        expect(tipCalls).toHaveLength(0)
     })
 })

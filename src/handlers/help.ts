@@ -7,9 +7,8 @@ const helpHandler: SlashCommandHandler = async (handler, { channelId }) => {
             '• `/start minUSD maxUSD` — Host defines the allowed USD tip range\n\n' +
             '• Send ETH tips within that range to join or top up\n\n' +
             '• `/state` — Show players, deposits, and pot status\n\n' +
-            '• `/leave` — Mark yourself away (deposit stays for settlement)\n\n' +
             '• `/finish` — Host ends play; further tips are ignored\n\n' +
-            '• `/cashout usd` — Report your chip value to settle in ETH\n\n',
+            '• `/cashout usd` — Leave at any time by reporting your chip value (ETH payout if up)\n\n',
     )
 }
 

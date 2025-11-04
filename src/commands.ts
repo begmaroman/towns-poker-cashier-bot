@@ -21,10 +21,6 @@ const commands = [
         name: 'cashout',
         description: 'Report your final stack after the game is finished',
     },
-    {
-        name: 'leave',
-        description: 'Mark yourself as away from the table',
-    },
 ] as const satisfies PlainMessage<SlashCommand>[]
 
 export default commands

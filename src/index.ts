@@ -6,7 +6,6 @@ import helpHandler from './handlers/help'
 import startHandler from './handlers/start'
 import stateHandler from './handlers/state'
 import finishHandler from './handlers/finish'
-import leaveHandler from './handlers/leave'
 import cashoutHandler from './handlers/cashout'
 import createTipHandler from './handlers/tip'
 import type { SlashCommandHandler } from './types'
@@ -34,7 +33,6 @@ registerSlashCommand('help', helpHandler)
 registerSlashCommand('start', startHandler)
 registerSlashCommand('state', stateHandler)
 registerSlashCommand('finish', finishHandler)
-registerSlashCommand('leave', leaveHandler)
 registerSlashCommand('cashout', cashoutHandler)
 
 bot.onTip(createTipHandler(bot.appAddress))

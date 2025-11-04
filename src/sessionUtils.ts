@@ -101,7 +101,7 @@ export function formatPlayerLine(player: PlayerState, session: Session): string 
     }
 
     return (
-        `• ${mention(player.userId)} — ${status} — Deposit: ${formatEth(player.totalDepositWei)} (~${formatUsd(depositUsd)}) — ` +
+        `\\- ${mention(player.userId)} — ${status} — Deposit: ${formatEth(player.totalDepositWei)} (~${formatUsd(depositUsd)}) — ` +
         `Cashout: ${cashoutText} — ${netText}`
     )
 }
@@ -115,7 +115,7 @@ export function formatRejectedTips(session: Session): string {
         .slice()
         .sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime())
         .map((item) => {
-            return `• ${mention(item.userId)} — ${formatEth(item.amountWei)} (~${formatUsd(item.amountUsdCents)}) — ${item.reason} (${item.receivedAt.toLocaleString()})`
+            return `\\- ${mention(item.userId)} — ${formatEth(item.amountWei)} (~${formatUsd(item.amountUsdCents)}) — ${item.reason} (${item.receivedAt.toLocaleString()})`
         })
 
     return `**Ignored Tips:**\n${lines.join('\n')}`
