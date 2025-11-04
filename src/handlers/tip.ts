@@ -14,13 +14,13 @@ export const createTipHandler = (botId: string): TipHandler => async (handler, e
         return
     }
 
-    if (event.currency.toLowerCase() !== ZERO_ADDRESS) {
+    /*if (event.currency.toLowerCase() !== ZERO_ADDRESS) {
         await handler.sendMessage(
             event.channelId,
-            `${mention(event.userId)} sent a tip in an unsupported token. Please use ETH for poker deposits.`,
+            `${mention(event.userId)} sent a tip in an unsupported token (${event.currency}). Please use ETH for poker deposits.`,
         )
         return
-    }
+    }*/
 
     const session = getSession(event.channelId)
     if (!session) {
