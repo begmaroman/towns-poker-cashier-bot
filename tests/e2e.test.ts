@@ -186,9 +186,9 @@ describe('Poker cashier bot e2e coverage', () => {
         expect(stateMessage).toContain('~USD 25') // Player B total
         expect(stateMessage).not.toContain('Ignored Tips')
 
-        const [midGameCashout] = await runCommand('cashout', ['20'], PLAYER_B_ID, handler, messages)
+        const [midGameCashout] = await runCommand('cashout', ['0'], PLAYER_B_ID, handler, messages)
         expect(midGameCashout).toContain('Net result: loss')
-        expect(midGameCashout).toContain('Tip sent on\\-chain')
+        expect(midGameCashout).not.toContain('Tip sent on')
 
         const [stateAfterCashout] = await runCommand('state', [], HOST_ID, handler, messages)
         expect(stateAfterCashout).toContain('Left table')
@@ -211,14 +211,15 @@ describe('Poker cashier bot e2e coverage', () => {
 
         const finalSession = getSession(CHANNEL_ID)!
         const totals = getSessionTotals(finalSession)
-        expect(totals.totalDepositsWei).toBe(totals.totalCashoutsWei)
+        const expectedOutstandingWei = usdCentsToWei(2000n, rate)
+        expect(totals.totalDepositsWei - totals.totalCashoutsWei).toBe(expectedOutstandingWei)
 
         const [finalState] = await runCommand('state', [], HOST_ID, handler, messages)
-        expect(finalState).toContain('Outstanding balance: ETH 0')
+        expect(finalState).toContain('Outstanding balance:')
+        expect(finalState).toContain('USD 20')
 
-        expect(tipCalls).toHaveLength(2)
-        expect(tipCalls[0]?.userId).toBe(PLAYER_B_ID)
-        expect(tipCalls[1]?.userId).toBe(PLAYER_A_ID)
+        expect(tipCalls).toHaveLength(1)
+        expect(tipCalls[0]?.userId).toBe(PLAYER_A_ID)
     })
 
     it('prevents actions when session state disallows them', async () => {
@@ -265,5 +266,30 @@ describe('Poker cashier bot e2e coverage', () => {
         expect(getSession(CHANNEL_ID)!.players.size).toBe(0)
         expect(getSession(CHANNEL_ID)!.rejectedTips).toHaveLength(2)
         expect(tipCalls).toHaveLength(0)
+    })
+
+    it('allows cashout of zero remaining chips after losing all funds', async () => {
+        const { handler, messages, tipCalls } = createHandler()
+
+        await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
+        const session = getSession(CHANNEL_ID)!
+        const rate = session.exchangeRate.value
+
+        await sendTip(handler, messages, {
+            userId: PLAYER_A_ID,
+            senderAddress: PLAYER_A_ID,
+            amount: usdCentsToWei(2500n, rate),
+        })
+
+        await runCommand('finish', [], HOST_ID, handler, messages)
+
+        const [cashoutLoss] = await runCommand('cashout', ['0'], PLAYER_A_ID, handler, messages)
+        expect(cashoutLoss).toContain('Net result: loss')
+        expect(cashoutLoss).not.toContain('Tip sent on')
+
+        expect(tipCalls).toHaveLength(0)
+        const lossSession = getSession(CHANNEL_ID)!
+        const totalsLoss = getSessionTotals(lossSession)
+        expect(totalsLoss.totalDepositsWei).toBeGreaterThan(totalsLoss.totalCashoutsWei)
     })
 })

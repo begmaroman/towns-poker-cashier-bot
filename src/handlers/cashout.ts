@@ -27,8 +27,8 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
         return
     }
 
-    if (cashoutUsdCents <= 0n) {
-        await handler.sendMessage(channelId, 'Cashout amount must be greater than zero USD.')
+    if (cashoutUsdCents < 0n) {
+        await handler.sendMessage(channelId, 'Cashout amount must not be negative.')
         return
     }
 
@@ -44,8 +44,8 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
     }
 
     const cashoutWei = usdCentsToWei(cashoutUsdCents, session.exchangeRate.value)
-    if (cashoutWei <= 0n) {
-        await handler.sendMessage(channelId, 'Cashout amount is too small after conversion. Use a larger USD value.')
+    if (cashoutWei < 0n) {
+        await handler.sendMessage(channelId, 'Cashout amount must not be negative.')
         return
     }
 
@@ -73,16 +73,18 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
     let payoutHash: string | undefined
     let payoutError: unknown
 
-    try {
-        const result = await handler.sendTip({
-            userId,
-            amount: cashoutWei,
-            messageId: event.eventId,
-            channelId,
-        })
-        payoutHash = result.txHash
-    } catch (error) {
-        payoutError = error
+    if (cashoutWei > 0n) {
+        try {
+            const result = await handler.sendTip({
+                userId,
+                amount: cashoutWei,
+                messageId: event.eventId,
+                channelId,
+            })
+            payoutHash = result.txHash
+        } catch (error) {
+            payoutError = error
+        }
     }
 
     const payoutNotice = formatPayoutNotice(payoutHash, payoutError)
