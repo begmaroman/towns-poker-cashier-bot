@@ -3,13 +3,16 @@ import type { SlashCommandHandler } from '../types'
 const helpHandler: SlashCommandHandler = async (handler, { channelId }) => {
     await handler.sendMessage(
         channelId,
-        '**Poker Cashier Bot**\n\n' +
-            '• `/start <minUSD> <maxUSD>` — Host starts a session and sets the per-tip deposit bounds (USD).\n' +
-            '• Players send ETH tips within the allowed range; deposits are recorded automatically using the live ETH/USD rate.\n' +
-            '• `/state` — View current standings, deposits, and outstanding pot balance.\n' +
-            '• `/leave` — Mark yourself as away from the table (deposit stays recorded).\n' +
-            '• `/finish` — Host closes the session when play ends (tips blocked).\n' +
-            '• `/cashout <usd>` — After finish, report your final stack (USD). The bot converts to ETH and tracks payouts.',
+        [
+            '**Poker Cashier Bot**',
+            '',
+            '• `/start <minUSD> <maxUSD>` — Host defines the allowed USD tip range.',
+            '• Send ETH tips within that range to join or top up.',
+            '• `/state` — Show players, deposits, and pot status.',
+            '• `/leave` — Mark yourself away (deposit stays for settlement).',
+            '• `/finish` — Host ends play; further tips are ignored.',
+            '• `/cashout <usd>` — Report your chip value to settle in ETH.',
+        ].join('\n'),
     )
 }
 

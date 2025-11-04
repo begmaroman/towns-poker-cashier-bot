@@ -97,6 +97,7 @@ async function tryFetchRate(): Promise<EthUsdRate | null> {
         )
 
         if (!response.ok) {
+            console.warn("Failed to fetch ETH/USD rate from CoinGecko:", response.statusText)
             return null
         }
 
@@ -104,6 +105,7 @@ async function tryFetchRate(): Promise<EthUsdRate | null> {
         const usdPrice = body?.ethereum?.usd
 
         if (typeof usdPrice !== 'number' || !Number.isFinite(usdPrice) || usdPrice <= 0) {
+            console.warn('Invalid ETH/USD rate from CoinGecko:', usdPrice)
             return null
         }
 
