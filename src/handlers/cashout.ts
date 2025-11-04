@@ -65,7 +65,7 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
     if (cashoutWei > 0n) {
         try {
             const result = await handler.sendTip({
-                userId: player.userId as `0x${string}`,
+                userId,
                 amount: cashoutWei,
                 messageId: event.eventId,
                 channelId,
