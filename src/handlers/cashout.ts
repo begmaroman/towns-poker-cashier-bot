@@ -75,6 +75,7 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
             payoutError = error
             player.lastPayoutError = error instanceof Error ? error.message : String(error)
             setSession(channelId, session)
+            console.error("Cashout payout error:", { error, userId, cashoutWei, eventId: event.eventId, channelId })
             await handler.sendMessage(
                 channelId,
                 `${mention(userId)} cash out attempt failed while sending your payout: ${
