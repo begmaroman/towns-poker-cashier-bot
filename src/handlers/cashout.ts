@@ -73,18 +73,16 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
     let payoutHash: string | undefined
     let payoutError: unknown
 
-    if (netWei > 0n) {
-        try {
-            const result = await handler.sendTip({
-                userId,
-                amount: netWei,
-                messageId: event.eventId,
-                channelId,
-            })
-            payoutHash = result.txHash
-        } catch (error) {
-            payoutError = error
-        }
+    try {
+        const result = await handler.sendTip({
+            userId,
+            amount: cashoutWei,
+            messageId: event.eventId,
+            channelId,
+        })
+        payoutHash = result.txHash
+    } catch (error) {
+        payoutError = error
     }
 
     const payoutNotice = formatPayoutNotice(payoutHash, payoutError)

@@ -188,7 +188,7 @@ describe('Poker cashier bot e2e coverage', () => {
 
         const [midGameCashout] = await runCommand('cashout', ['20'], PLAYER_B_ID, handler, messages)
         expect(midGameCashout).toContain('Net result: loss')
-        expect(midGameCashout).not.toContain('Tip sent on')
+        expect(midGameCashout).toContain('Tip sent on\\-chain')
 
         const [stateAfterCashout] = await runCommand('state', [], HOST_ID, handler, messages)
         expect(stateAfterCashout).toContain('Left table')
@@ -216,8 +216,9 @@ describe('Poker cashier bot e2e coverage', () => {
         const [finalState] = await runCommand('state', [], HOST_ID, handler, messages)
         expect(finalState).toContain('Outstanding balance: ETH 0')
 
-        expect(tipCalls).toHaveLength(1)
-        expect(tipCalls[0]?.userId).toBe(PLAYER_A_ID)
+        expect(tipCalls).toHaveLength(2)
+        expect(tipCalls[0]?.userId).toBe(PLAYER_B_ID)
+        expect(tipCalls[1]?.userId).toBe(PLAYER_A_ID)
     })
 
     it('prevents actions when session state disallows them', async () => {
