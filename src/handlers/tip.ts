@@ -73,6 +73,8 @@ export const createTipHandler = (botId: string): TipHandler => async (handler, e
         player.isActive = true
         player.leftAt = undefined
         player.lastActionAt = now
+        player.cashoutWei = undefined
+        player.cashoutUsdCents = undefined
     }
 
     setSession(event.channelId, session)

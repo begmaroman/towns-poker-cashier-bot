@@ -292,4 +292,38 @@ describe('Poker cashier bot e2e coverage', () => {
         const totalsLoss = getSessionTotals(lossSession)
         expect(totalsLoss.totalDepositsWei).toBeGreaterThan(totalsLoss.totalCashoutsWei)
     })
+
+    it('allows a player to rejoin after cashing out', async () => {
+        const { handler, messages, tipCalls } = createHandler()
+
+        await runCommand('start', ['20', '200'], HOST_ID, handler, messages)
+        const session = getSession(CHANNEL_ID)!
+        const rate = session.exchangeRate.value
+
+        await sendTip(handler, messages, {
+            userId: PLAYER_A_ID,
+            senderAddress: PLAYER_A_ID,
+            amount: usdCentsToWei(2000n, rate),
+        })
+
+        const [cashoutMessage] = await runCommand('cashout', ['20'], PLAYER_A_ID, handler, messages)
+        expect(cashoutMessage).toContain('Net result: even')
+        expect(cashoutMessage).toContain('Tip sent on')
+        expect(tipCalls).toHaveLength(1)
+        expect(tipCalls[0]?.userId).toBe(PLAYER_A_ID)
+
+        const [rejoinMessage] = await sendTip(handler, messages, {
+            userId: PLAYER_A_ID,
+            senderAddress: PLAYER_A_ID,
+            amount: usdCentsToWei(2000n, rate),
+        })
+        expect(rejoinMessage).toContain('deposited')
+
+        const rejoinedSession = getSession(CHANNEL_ID)!
+        const player = rejoinedSession.players.get(PLAYER_A_ID)
+        expect(player).toBeDefined()
+        expect(player?.isActive).toBe(true)
+        expect(player?.cashoutWei).toBeUndefined()
+        expect(player?.totalDepositWei).toBeGreaterThan(0n)
+    })
 })
