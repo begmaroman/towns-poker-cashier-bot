@@ -69,6 +69,7 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
                 amount: cashoutWei,
                 messageId: event.eventId,
                 channelId,
+                currency: '0x0000000000000000000000000000000000000000'
             })
             payoutHash = result.txHash
         } catch (error) {
