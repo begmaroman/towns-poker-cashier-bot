@@ -91,8 +91,9 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
 
     await handler.sendMessage(
         channelId,
-        `${mention(userId)} cashes out ${formatUsd(cashoutUsdCents)} (~${formatEth(cashoutWei)}). ${netSummary}${payoutNotice}\n\n` +
-            `Outstanding pot balance: ${formatUsd(outstandingUsdCents)} (~${formatEth(outstandingWei)}).`,
+        `${mention(userId)} cashes out ${formatUsd(cashoutUsdCents)} (~${formatEth(cashoutWei)}).\n\n` +
+        `${netSummary}${payoutNotice}\n\n` +
+        `Outstanding pot balance: ${formatUsd(outstandingUsdCents)} (~${formatEth(outstandingWei)}).`,
     )
 }
 

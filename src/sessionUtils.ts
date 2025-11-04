@@ -36,13 +36,12 @@ export function buildGameStateMessage(session: Session): string {
     const statusLine = session.status === 'active' ? 'In progress' : 'Finished'
     const baseLines = [
         `**Session Status:** ${statusLine}`,
-        `Started by ${mention(session.createdBy)} on ${session.createdAt.toLocaleString()}`,
-        `Per-tip deposit bounds: ${formatUsd(session.minDepositUsdCents)} – ${formatUsd(session.maxDepositUsdCents)}`,
-        formatRate(session.exchangeRate),
-        `Players seated: ${totals.playerCount}`,
-        `Total deposits: ${formatEth(totals.totalDepositsWei)} (~${formatUsd(totalDepositsUsd)})`,
-        `Recorded cashouts: ${formatEth(totals.totalCashoutsWei)} (~${formatUsd(totalCashoutsUsd)})`,
-        `Outstanding balance: ${formatEth(outstandingWei)} (~${formatUsd(outstandingUsd)})`,
+        `• Started by ${mention(session.createdBy)} on ${session.createdAt.toLocaleString()}`,
+        `• Buy-in bounds: ${formatUsd(session.minDepositUsdCents)} – ${formatUsd(session.maxDepositUsdCents)} (${formatRate(session.exchangeRate)})`,
+        `• Players seated: ${totals.playerCount}`,
+        `• Total deposits: ${formatEth(totals.totalDepositsWei)} (~${formatUsd(totalDepositsUsd)})`,
+        `• Recorded cashouts: ${formatEth(totals.totalCashoutsWei)} (~${formatUsd(totalCashoutsUsd)})`,
+        `• Outstanding balance: ${formatEth(outstandingWei)} (~${formatUsd(outstandingUsd)})`,
     ]
 
     const players = Array.from(session.players.values()).sort(
@@ -101,7 +100,7 @@ export function formatPlayerLine(player: PlayerState, session: Session): string 
     }
 
     return (
-        `\\- ${mention(player.userId)} — ${status} — Deposit: ${formatEth(player.totalDepositWei)} (~${formatUsd(depositUsd)}) — ` +
+        `• ${mention(player.userId)} — ${status} — Deposit: ${formatEth(player.totalDepositWei)} (~${formatUsd(depositUsd)}) — ` +
         `Cashout: ${cashoutText} — ${netText}`
     )
 }
