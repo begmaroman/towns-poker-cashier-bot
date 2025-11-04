@@ -65,7 +65,7 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
     if (cashoutWei > 0n) {
         try {
             const result = await handler.sendTip({
-                userId,
+                userId: player.userId as `0x${string}`,
                 amount: cashoutWei,
                 messageId: event.eventId,
                 channelId,
@@ -76,7 +76,7 @@ const cashoutHandler: SlashCommandHandler = async (handler, event) => {
             payoutError = error
             player.lastPayoutError = error instanceof Error ? error.message : String(error)
             setSession(channelId, session)
-            console.error("Cashout payout error:", { error, userId, cashoutWei, eventId: event.eventId, channelId })
+            console.error("Cashout payout error:", { error, userId, playerUserId: player.userId, cashoutWei, eventId: event.eventId, channelId })
             await handler.sendMessage(
                 channelId,
                 `${mention(userId)} cash out attempt failed while sending your payout: ${
