@@ -19,7 +19,8 @@
     "@towns-protocol/proto": "^0.0.395",
     "@towns-protocol/web3": "^0.0.395",
     "hono": "^4.7.11",
-    "viem": "^2.29.3"
+    "viem": "^2.29.3",
+    "x402-hono": "^0.7.1"
   },
   "devDependencies": {
     "@types/bun": "^1.3.1",
