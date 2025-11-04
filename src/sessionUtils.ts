@@ -51,16 +51,16 @@ export function buildGameStateMessage(session: Session): string {
 
     if (players.length === 0) {
         const rejectedSection = formatRejectedTips(session)
-        return baseLines.join('\n') + (rejectedSection ? `\n\n${rejectedSection}` : '')
+        return baseLines.join('\n\n') + (rejectedSection ? `\n\n${rejectedSection}` : '')
     }
 
     const playerLines = players.map((player) => formatPlayerLine(player, session))
     const rejectedSection = formatRejectedTips(session)
 
     return (
-        baseLines.join('\n') +
-        '\n\n**Players:**\n' +
-        playerLines.join('\n') +
+        baseLines.join('\n\n') +
+        '\n\n**Players:**\n\n' +
+        playerLines.join('\n\n') +
         (rejectedSection ? `\n\n${rejectedSection}` : '')
     )
 }
