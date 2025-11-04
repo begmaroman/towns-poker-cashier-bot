@@ -9,17 +9,58 @@ import finishHandler from './handlers/finish'
 import leaveHandler from './handlers/leave'
 import cashoutHandler from './handlers/cashout'
 import createTipHandler from './handlers/tip'
+import type { SlashCommandEvent, SlashCommandHandler } from './types'
 
 const bot = await makeTownsBot(process.env.APP_PRIVATE_DATA!, process.env.JWT_SECRET!, {
     commands,
 })
 
-bot.onSlashCommand('help', helpHandler)
-bot.onSlashCommand('start', startHandler)
-bot.onSlashCommand('state', stateHandler)
-bot.onSlashCommand('finish', finishHandler)
-bot.onSlashCommand('leave', leaveHandler)
-bot.onSlashCommand('cashout', cashoutHandler)
+const commandHandlers: Record<string, SlashCommandHandler> = {
+    help: helpHandler,
+    start: startHandler,
+    state: stateHandler,
+    finish: finishHandler,
+    leave: leaveHandler,
+    cashout: cashoutHandler,
+}
+
+bot.onMessage(async (handler, event) => {
+    if (event.userId === bot.botId) {
+        return
+    }
+
+    const trimmed = event.message.trim()
+    if (!trimmed.startsWith('/')) {
+        return
+    }
+
+    const [commandToken, ...args] = trimmed.split(/\s+/)
+    const commandName = commandToken.slice(1).toLowerCase()
+    const execute = commandHandlers[commandName]
+
+    if (!execute) {
+        return
+    }
+
+    const commandEvent: SlashCommandEvent = {
+        channelId: event.channelId,
+        userId: event.userId,
+        args,
+        command: commandName,
+        spaceId: event.spaceId,
+        eventId: event.eventId,
+        createdAt: event.createdAt,
+        rawMessage: event.message,
+    }
+
+    try {
+        await execute(handler, commandEvent)
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unexpected error while handling command.'
+        await handler.sendMessage(event.channelId, `Command failed: ${message}`)
+    }
+})
+
 bot.onTip(createTipHandler(bot.botId))
 
 const { jwtMiddleware, handler } = bot.start()

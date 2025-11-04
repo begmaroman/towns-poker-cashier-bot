@@ -1,6 +1,4 @@
-import type { BotEvents, BotHandler } from '@towns-protocol/bot'
-
-import type commands from './commands'
+import type { BotHandler } from '@towns-protocol/bot'
 
 export type Amount = bigint
 
@@ -44,11 +42,24 @@ export interface EthUsdRate {
     source: string
 }
 
-type Events = BotEvents<typeof commands>
+export interface SlashCommandEvent {
+    channelId: string
+    userId: string
+    args: string[]
+    command: string
+    spaceId: string
+    eventId: string
+    createdAt: Date
+    rawMessage: string
+}
 
-export type SlashCommandEvent = Parameters<Events['slashCommand']>[1]
-
-export type TipEvent = Parameters<Events['tip']>[1]
+export interface TipEvent {
+    channelId: string
+    userId: string
+    amount: Amount
+    currency: string
+    receiverAddress: string
+}
 
 export type SlashCommandHandler = (handler: BotHandler, event: SlashCommandEvent) => Promise<void>
 
