@@ -37,7 +37,7 @@ registerSlashCommand('finish', finishHandler)
 registerSlashCommand('leave', leaveHandler)
 registerSlashCommand('cashout', cashoutHandler)
 
-bot.onTip(createTipHandler(bot.botId))
+bot.onTip(createTipHandler(bot.appAddress))
 
 const { jwtMiddleware, handler } = bot.start()
 
