@@ -66,7 +66,7 @@ const startHandler: SlashCommandHandler = async (handler, event) => {
 
     await handler.sendMessage(
         channelId,
-        `Started a new poker session. Accepted deposit per tip: ${formatUsd(minDepositUsdCents)} to ${formatUsd(maxDepositUsdCents)}. ${formatRate(exchangeRate)}\n` +
+        `Started a new poker session. Accepted deposit per tip: ${formatUsd(minDepositUsdCents)} to ${formatUsd(maxDepositUsdCents)}. ${formatRate(exchangeRate)}\n\n` +
             'Tip the bot within the allowed range to sit down or add to your stack.',
     )
 }
