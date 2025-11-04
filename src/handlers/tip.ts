@@ -85,15 +85,14 @@ export const createTipHandler = (botId: string): TipHandler => async (handler, e
     const totalDepositsUsd = weiToUsdCents(totals.totalDepositsWei, session.exchangeRate.value)
 
     // TODO: Remove
-    console.log("Sending tip back", event)
-    const result = await handler.sendTip({
+    /*console.log("Sending tip back", event)
+    await handler.sendTip({
         userId: event.userId, // The person who tipped you
         channelId: event.channelId, // Same channel
         messageId: event.messageId, // Reference the original message
         amount: event.amount, // Same amount (or adjust as needed)
         currency: event.currency, // Same token
-    });
-    console.log("Sent tip back", result)
+    });*/
 
     await handler.sendMessage(
         event.channelId,
