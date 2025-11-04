@@ -12,7 +12,7 @@ import createTipHandler from './handlers/tip'
 import type { SlashCommandEvent, SlashCommandHandler } from './types'
 
 const bot = await makeTownsBot(process.env.APP_PRIVATE_DATA!, process.env.JWT_SECRET!, {
-    commands,
+    // commands,
 })
 
 const commandHandlers: Record<string, SlashCommandHandler> = {
