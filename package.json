@@ -15,9 +15,12 @@
   },
   "dependencies": {
     "@connectrpc/connect-node": "^2.1.0",
+    "@hono/node-server": "^1.19.6",
     "@towns-protocol/bot": "^0.0.395",
     "@towns-protocol/proto": "^0.0.395",
     "@towns-protocol/web3": "^0.0.395",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "hono": "^4.7.11",
     "viem": "^2.29.3",
     "x402-hono": "^0.7.1"
